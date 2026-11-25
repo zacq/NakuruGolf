@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+.netlify/
+.env
+.env.*
+!.env.example
+next-env.d.ts
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Internal planning documents (the repository is public)
+PRD*

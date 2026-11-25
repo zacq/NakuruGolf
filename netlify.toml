@@ -1,0 +1,9 @@
+"$schema" = "https://open-api.netlify.com/netlify.schema.json"
+
+# Next.js is detected automatically and served by Netlify's Next.js runtime.
+[build]
+  command = "npm run db:migrate && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
