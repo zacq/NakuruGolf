@@ -53,7 +53,16 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const url = `${CLUB.url}/events/${e.slug}`;
   const checkIn = nairobiDate(e.startsAt);
   const checkOut = plusDay(nairobiDate(e.endsAt), 1);
-  const shareMsg = `Join me at the ${e.name}, ${eventDates(e.startsAt, e.endsAt)} at Nakuru Golf Club: ${url}`;
+  const gcalStamp = (d: Date) => new Date(d).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const gcal = `https://calendar.google.com/calendar/render?${new URLSearchParams({
+    action: "TEMPLATE",
+    text: e.name,
+    dates: `${gcalStamp(e.startsAt)}/${gcalStamp(e.endsAt)}`,
+    details: `${e.summary}\n\n${url}`,
+    location: `${CLUB.name}, ${CLUB.address}`,
+    ctz: "Africa/Nairobi",
+  })}`;
+  const shareMsg =`Join me at the ${e.name}, ${eventDates(e.startsAt, e.endsAt)} at Nakuru Golf Club: ${url}`;
 
   return (
     <>
@@ -73,7 +82,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <div className="mt-6 grid gap-3 sm:flex">
             {st !== "past" && <a href="#register" className="btn-gold text-lg">Register now</a>}
             <a href={waLink(shareMsg)} target="_blank" rel="noopener" className="btn-wa">💬 Share on WhatsApp</a>
-            <a href={`/api/events/${e.slug}/ics`} className="btn-light">📆 Add to calendar</a>
+            <a href={gcal} target="_blank" rel="noopener" className="btn-light">📆 Add to Google Calendar</a>
+            <a href={`/api/events/${e.slug}/ics`} className="flex min-h-12 items-center justify-center text-sm text-fairway-100 underline">Apple / Outlook (.ics)</a>
           </div>
         </div>
       </section>
