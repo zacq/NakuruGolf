@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "./CartProvider";
 import { Alert, Field } from "./ui";
+import WhatsAppRegister from "./WhatsAppRegister";
 import { kes } from "@/lib/constants";
 import { track } from "@/lib/analytics";
 
@@ -33,6 +34,15 @@ export default function TeeDraw({ event, tees }: { event: { id: number; name: st
   const [hdidId, setHdidId] = useState("");
   const [club, setClub] = useState("");
   const [err, setErr] = useState("");
+  // a link shared on WhatsApp (?tee=ID) opens with that slot already selected
+  useEffect(() => {
+    const t = tees.find((x) => x.id === Number(new URLSearchParams(window.location.search).get("tee")));
+    if (t && isOpen(t)) {
+      setDay(t.day);
+      setPick(t.id);
+    }
+  }, [tees]);
+
   const tee = tees.find((t) => t.id === pick);
   const list = tees.filter((t) => t.day === day);
 
@@ -112,6 +122,10 @@ export default function TeeDraw({ event, tees }: { event: { id: number; name: st
           {err && <Alert>{err}</Alert>}
           <button type="button" onClick={enter} className="btn-gold w-full text-lg">Enter draw · pay {kes(tee.fee)} by M-Pesa</button>
           <p className="text-xs text-fairway-800/70">Next you confirm your phone number and approve the M-Pesa prompt. Your entry counts once Safaricom confirms the payment: no screenshots needed.</p>
+          <div className="grid gap-1 border-t border-fairway-100 pt-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <p className="text-sm text-fairway-800/80">Paying later? Get this tee time&apos;s registration link in your WhatsApp.</p>
+            <WhatsAppRegister event={event} tee={{ id: tee.id, label: tee.label }} className="btn-wa text-sm" />
+          </div>
         </div>
       ) : (
         <p className="rounded-xl border-2 border-dashed border-fairway-200 p-4 text-center text-sm text-fairway-800/80">Tap an open tee time to enter its draw.</p>

@@ -4,11 +4,12 @@ import type { Metadata } from "next";
 import { db } from "@/db";
 import { and, asc, eq } from "drizzle-orm";
 import * as s from "@/db/schema";
-import { CLUB, EVENT_TYPES, SPONSOR_ROLES, eventDates, eventStatus, kes, waLink } from "@/lib/constants";
+import { CLUB, EVENT_TYPES, SPONSOR_ROLES, eventDates, eventStatus, kes } from "@/lib/constants";
 import { nairobiDate, plusDay } from "@/lib/queries";
 import Countdown from "@/components/Countdown";
 import EntryPanel from "@/components/EntryPanel";
 import TeeDraw from "@/components/TeeDraw";
+import WhatsAppRegister from "@/components/WhatsAppRegister";
 import { teeTimeViews } from "@/lib/leaderboard";
 import RoomBooker from "@/components/RoomBooker";
 import CarWashBooker from "@/components/CarWashBooker";
@@ -86,7 +87,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     location: `${CLUB.name}, ${CLUB.address}`,
     ctz: "Africa/Nairobi",
   })}`;
-  const shareMsg = `Join me at the ${e.name}, ${eventDates(e.startsAt, e.endsAt)} at Nakuru Golf Club. Pick your tee time here: ${url}`;
   const hasDraw = tees.length > 0;
   const openTees = tees.filter((t) => t.status === "open" && t.entries < t.capacity).length;
   const entered = tees.reduce((a, t) => a + t.entries, 0);
@@ -128,7 +128,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             {st !== "past" && (
               <div className="mt-5 grid gap-3 sm:flex">
                 <a href={hasDraw ? "#tee-sheet" : "#register"} className="btn-gold text-lg">{hasDraw ? "Choose your tee time ↓" : "Register now ↓"}</a>
-                <a href="#howdidido" className="btn-light">How HowDidiDo fits in</a>
+                <WhatsAppRegister event={{ name: e.name, slug: e.slug }} />
               </div>
             )}
           </div>
@@ -260,7 +260,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         )}
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
-          <a href={waLink(shareMsg)} target="_blank" rel="noopener" className="flex min-h-12 items-center underline">💬 Share on WhatsApp</a>
+          {st !== "past" && <WhatsAppRegister event={{ name: e.name, slug: e.slug }} className="flex min-h-12 items-center underline" showChannel={false} />}
           <a href={gcal} target="_blank" rel="noopener" className="flex min-h-12 items-center underline">📆 Add to Google Calendar</a>
           <a href={`/api/events/${e.slug}/ics`} className="flex min-h-12 items-center underline">Apple / Outlook (.ics)</a>
         </div>

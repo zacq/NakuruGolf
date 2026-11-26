@@ -10,6 +10,9 @@ export const CLUB = {
   url: process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || "https://nakurugolfclub.co.ke",
 };
 
+// WhatsApp channel invite, e.g. https://whatsapp.com/channel/...
+export const WA_CHANNEL = process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL || "";
+
 export const PAYBILL = process.env.NEXT_PUBLIC_MPESA_PAYBILL || "";
 
 export const SOCIALS = [
