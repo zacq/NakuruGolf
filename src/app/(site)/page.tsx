@@ -6,6 +6,7 @@ import { CLUB, IMG, eventDates, eventStatus, fmtDate, kes } from "@/lib/constant
 import { entryMinPrices } from "@/lib/queries";
 import Countdown from "@/components/Countdown";
 import { getLeaderboard } from "@/lib/leaderboard";
+import LeaderboardBoard from "@/components/LeaderboardBoard";
 import { PartnerBadge } from "@/components/PartnerBadge";
 import { Img, JsonLd, SectionTitle } from "@/components/Bits";
 
@@ -40,7 +41,7 @@ export default async function Home() {
       <JsonLd data={{ "@context": "https://schema.org", "@type": ["SportsActivityLocation", "LocalBusiness"], name: CLUB.name, telephone: CLUB.phone, email: CLUB.email, address: { "@type": "PostalAddress", streetAddress: "Showground Road, behind Nakuru Show Ground", addressLocality: "Nakuru", addressCountry: "KE" }, url: CLUB.url }} />
       <section className="relative isolate overflow-hidden bg-fairway-900 text-white">
         <Img eager src={IMG.hero} alt="Sunrise over the Nakuru Golf Club course" className="absolute inset-0 -z-10 h-full w-full opacity-50" />
-        <div className="container-x grid gap-8 py-14 sm:py-20 lg:grid-cols-[1fr_22rem] lg:items-center">
+        <div className="container-x grid gap-8 pb-16 pt-12 sm:pb-20 sm:pt-16 lg:grid-cols-[1fr_26rem] lg:items-center">
           <div>
           <p className="mb-3 inline-block rounded-full bg-gold-500/90 px-3 py-1 text-xs font-bold uppercase tracking-widest text-fairway-900">Nakuru · Kenya</p>
           <h1 className="max-w-2xl text-4xl font-bold leading-[1.05] sm:text-6xl">Golf, events & a great day out in Nakuru.</h1>
@@ -50,24 +51,7 @@ export default async function Home() {
             <Link href="/stay" className="btn-light text-lg">Book a stay</Link>
           </div>
           </div>
-          {board.rows.length > 0 && (
-            <Link href="/leaderboard" className="block rounded-2xl bg-fairway-900/80 p-4 ring-1 ring-white/15 backdrop-blur transition hover:ring-gold-400">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-gold-300">{board.title}</p>
-                {board.sample && <span className="rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold uppercase text-fairway-900">Sample</span>}
-              </div>
-              <ol className="grid gap-1 text-sm">
-                {board.rows.slice(0, 5).map((r) => (
-                  <li key={r.pos + r.name} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
-                    <span className="w-6 font-serif text-lg font-bold text-gold-400">{r.pos}</span>
-                    <span className="min-w-0 flex-1 truncate">{r.name} <span className="text-fairway-200">({r.handicap})</span></span>
-                    <span className="font-bold">{r.points}</span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-2 text-xs text-fairway-200">From HowDidiDo{board.updated ? ` · updated ${board.updated}` : ""} · full table →</p>
-            </Link>
-          )}
+          <LeaderboardBoard board={board} />
         </div>
       </section>
 
