@@ -5,6 +5,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import * as s from "@/db/schema";
 import { fmtDate, kes } from "@/lib/constants";
 import { getSessionPhone } from "@/lib/session";
+import { teeLabel } from "@/lib/draw";
 import { AuthForm, ConsentToggle, LogoutButton, PayMembershipButton } from "@/components/AccountClient";
 import { QrSvg } from "@/components/QrSvg";
 
@@ -29,6 +30,7 @@ export default async function AccountPage() {
     db.select().from(s.events),
   ]);
   const [cust] = await db.select().from(s.customers).where(eq(s.customers.phone, phone));
+  const draws = await db.select({ b: s.ballotEntries, t: s.teeTimes }).from(s.ballotEntries).innerJoin(s.teeTimes, eq(s.teeTimes.id, s.ballotEntries.teeTimeId)).where(eq(s.ballotEntries.phone, phone)).orderBy(desc(s.ballotEntries.id));
   return (
     <div className="container-x section grid gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -57,6 +59,24 @@ export default async function AccountPage() {
                   </div>
                   {needsPay && <PayMembershipButton id={m.id} name={m.name} label={`Pay joining fee + subscription (${kes(cat.joiningFee + cat.annualFee)})`} price={cat.joiningFee + cat.annualFee} />}
                   {renew && (soon || m.status === "lapsed") && <PayMembershipButton id={m.id} name={m.name} label={`Renew (${kes(cat.annualFee)})`} price={cat.annualFee} />}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {draws.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-2xl font-bold">My tee-time draws</h2>
+          <div className="grid gap-2">
+            {draws.map(({ b, t }) => {
+              const ev = events.find((e) => e.id === b.eventId);
+              return (
+                <div key={b.id} className="card flex flex-wrap items-center justify-between gap-2 !p-4">
+                  <div><p className="font-bold">{ev?.name} · {teeLabel(t.startsAt)}</p><p className="text-sm text-fairway-800/70">{b.name} · M-Pesa {b.mpesaReceipt}</p></div>
+                  <span className={`chip ${b.result === "selected" ? "!bg-gold-400" : ""}`}>{b.result === "selected" ? "Drawn: you're playing" : b.result === "reserve" ? `Reserve #${(b.position || 0) - t.players}` : t.status === "open" ? "Entered: draw pending" : "Entries closed: draw pending"}</span>
+                  {b.result === "selected" && ev && <Link href={`/events/${ev.slug}#register`} className="btn-gold min-h-11 text-sm">Complete your entry</Link>}
                 </div>
               );
             })}

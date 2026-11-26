@@ -8,6 +8,8 @@ import { CLUB, EVENT_TYPES, SPONSOR_ROLES, eventDates, eventStatus, waLink } fro
 import { nairobiDate, plusDay } from "@/lib/queries";
 import Countdown from "@/components/Countdown";
 import EntryPanel from "@/components/EntryPanel";
+import TeeDraw from "@/components/TeeDraw";
+import { teeTimeViews } from "@/lib/leaderboard";
 import RoomBooker from "@/components/RoomBooker";
 import CarWashBooker from "@/components/CarWashBooker";
 import { MealOrder, ProductGrid } from "@/components/GolfForms";
@@ -46,6 +48,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     db.select().from(s.menuItems).where(and(eq(s.menuItems.category, "dinner"), eq(s.menuItems.available, true))),
     db.select().from(s.galleryPhotos).where(eq(s.galleryPhotos.eventId, e.id)),
   ]);
+  const tees = await teeTimeViews(e.id);
   const st = eventStatus(e);
   const url = `${CLUB.url}/events/${e.slug}`;
   const checkIn = nairobiDate(e.startsAt);
@@ -99,6 +102,18 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </section>
         ) : (
           <>
+            {tees.length > 0 && (
+              <section id="draw" className="scroll-mt-20">
+                <SectionTitle
+                  eyebrow="Tee-time draw"
+                  title="Enter the draw for a tee time"
+                  intro={`Pay a KSh ${tees[0].fee} draw fee by M-Pesa to enter. Each tee time takes up to ${tees[0].capacity} entries, then closes and ${tees[0].players} players are drawn at random. One entry per phone number.`}
+                />
+                <TeeDraw event={{ id: e.id, name: e.name, slug: e.slug }} tees={tees} />
+                <Link href={`/events/${e.slug}/draw`} className="mt-4 inline-block font-semibold underline">Draw results & how the draw is checked →</Link>
+              </section>
+            )}
+
             <section id="register" className="scroll-mt-20">
               <SectionTitle eyebrow="Step 1" title="Register & buy tickets" />
               <EntryPanel event={{ id: e.id, name: e.name, slug: e.slug }} types={types.map((t) => ({ id: t.id, kind: t.kind, name: t.name, description: t.description || "", price: t.price, priceMember: t.priceMember, players: t.players, cap: t.cap, sold: t.sold, deadline: t.deadline ? new Date(t.deadline).toISOString() : null }))} />

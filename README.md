@@ -18,6 +18,18 @@ Without M-Pesa and SMS credentials, checkout and account sign-in are unavailable
 - Set the Daraja variables. `MPESA_CALLBACK_URL` is `https://<site>/api/mpesa/callback`; the app appends `MPESA_CALLBACK_SECRET`.
 - Reminders run every 15 minutes from `netlify/functions/reminders.mts` and need `CRON_SECRET`.
 
+## Tee-time draw and HowDidiDo
+
+HowDidiDo has no M-Pesa payments and no public API. The website takes payment and runs the draw; HowDidiDo keeps scoring.
+
+1. In **/admin > Tee-time draws**, staff create the tee times for an event, for example 50 tee times 8 minutes apart, 100 entries each, 4 players drawn and a KSh 200 fee.
+2. Players pick a tee time on the event page and pay through an M-Pesa prompt. An entry exists only after Safaricom confirms the payment, so screenshots and typed receipts are never used.
+3. A tee time closes when it is full or when staff close it. Closing creates a secret seed and publishes its fingerprint. Running the draw reveals the seed. The order is SHA-256 of `seed:entry id`, so anyone can check it at `/events/<slug>/draw`.
+4. Winners and reserves receive an SMS. Staff download the start-sheet CSV (names, handicaps, HowDidiDo IDs, M-Pesa receipts) and enter or import it into the HowDidiDo competition.
+5. Staff paste the HowDidiDo leaderboard into the same page. It shows beside the home page hero and at `/leaderboard`.
+
+To present without Daraja credentials, deploy a separate staging site with `DEMO_MODE=true`, which simulates the M-Pesa prompt on screen.
+
 ## Develop
 
 ```

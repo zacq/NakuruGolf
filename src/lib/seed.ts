@@ -17,6 +17,15 @@ export function ensureSeed() {
 
 const d = (iso: string) => new Date(iso);
 
+// Shown with a "sample" badge until staff paste the real HowDidiDo export in the dashboard.
+export const SAMPLE_LEADERBOARD = `Pos,Name,Handicap,Points
+1,Sample Player A,12,41
+2,Sample Player B,8,39
+3,Sample Player C,18,38
+4,Sample Player D,5,37
+5,Sample Player E,22,36
+6,Sample Player F,14,35`;
+
 async function runSeed() {
   await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(424242)`);
@@ -277,10 +286,15 @@ async function runSeed() {
       { album: "The Course", url: IMG.mower, caption: "Greens maintenance" },
     ]);
 
+    // ---------- Tee-time draw: 50 tee times, 8 minutes apart, on day one of the Nakuru Open ----------
+    await tx.insert(s.teeTimes).values(Array.from({ length: 50 }, (_, n) => ({ eventId: open.id, startsAt: new Date(new Date(open.startsAt).getTime() + (n * 8 - 30) * 60_000) })));
+
     await tx.insert(s.settings).values([
       { key: "course_notice", value: COURSE_NOTE_DEFAULT },
       { key: "carwash_capacity", value: "3" },
       { key: "seeded", value: "1" },
+      { key: "hdid_leaderboard", value: SAMPLE_LEADERBOARD },
+      { key: "hdid_sample", value: "1" },
     ]);
   });
 }

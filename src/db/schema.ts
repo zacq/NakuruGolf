@@ -346,3 +346,42 @@ export const auditLogs = pgTable("audit_logs", {
   detail: text("detail").default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Tee-time draw: up to `capacity` paid entries per tee time, then `players` are drawn at random.
+export const teeTimes = pgTable(
+  "tee_times",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    capacity: integer("capacity").notNull().default(100),
+    players: integer("players").notNull().default(4),
+    fee: integer("fee").notNull().default(200),
+    status: text("status").notNull().default("open"), // open | locked | drawn
+    seedHash: text("seed_hash"),
+    seed: text("seed"),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    drawnAt: timestamp("drawn_at", { withTimezone: true }),
+  },
+  (t) => [index("tee_times_event_idx").on(t.eventId, t.startsAt)],
+);
+
+export const ballotEntries = pgTable(
+  "ballot_entries",
+  {
+    id: serial("id").primaryKey(),
+    teeTimeId: integer("tee_time_id").notNull(),
+    eventId: integer("event_id").notNull(),
+    orderId: integer("order_id").notNull(),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    handicap: text("handicap").default(""),
+    hdidId: text("hdid_id").default(""),
+    club: text("club").default(""),
+    mpesaReceipt: text("mpesa_receipt").default(""),
+    result: text("result").notNull().default("entered"), // entered | selected | reserve
+    position: integer("position"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("ballot_entries_tee_idx").on(t.teeTimeId), index("ballot_entries_phone_idx").on(t.eventId, t.phone)],
+);

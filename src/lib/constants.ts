@@ -41,6 +41,7 @@ export const STREAMS: Record<string, string> = {
   greenfees: "Green fees & golf extras",
   lessons: "Lessons",
   membership: "Membership",
+  ballot: "Tee-time draw fees",
   venue: "Venue hire",
   sponsorship: "Sponsorship",
 };

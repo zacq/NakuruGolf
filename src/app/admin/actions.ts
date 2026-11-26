@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { leaderboardUpdatedNow } from "@/lib/leaderboard";
+import { DRAW_CAPACITY, DRAW_FEE, PLAYERS_PER_TEE, lockTeeTime, paidEntries, runDraw } from "@/lib/draw";
 import * as s from "@/db/schema";
 import { isAdmin } from "@/lib/session";
 import { cancelAndRefund, roomAvailability, validDate } from "@/lib/commerce";
@@ -114,11 +116,16 @@ export async function saveSetting(fd: FormData) {
   await guard();
   const key = str(fd, "key");
   const value = str(fd, "value");
-  if (!["course_notice", "carwash_capacity", "sponsor_deck_url"].includes(key)) return;
+  if (!["course_notice", "carwash_capacity", "sponsor_deck_url", "hdid_leaderboard", "hdid_title"].includes(key)) return;
+  if (key === "hdid_leaderboard")
+    for (const [k, v] of [["hdid_sample", "0"], ["hdid_updated", leaderboardUpdatedNow()]])
+      await db.insert(s.settings).values({ key: k, value: v }).onConflictDoUpdate({ target: s.settings.key, set: { value: v } });
   await db.insert(s.settings).values({ key, value }).onConflictDoUpdate({ target: s.settings.key, set: { value } });
   await log("setting.update", `${key} = ${value.slice(0, 80)}`);
   revalidatePath("/admin/content");
   revalidatePath("/about");
+  revalidatePath("/admin/draws");
+  revalidatePath("/");
 }
 
 const pick = (fd: FormData, cols: string[]) => (cols.includes(str(fd, "col")) ? str(fd, "col") : cols[0]);
@@ -339,4 +346,52 @@ export async function addMenuItem(fd: FormData) {
   await db.insert(s.menuItems).values({ category: ["breakfast", "lunch", "dinner", "snacks"].includes(str(fd, "category")) ? str(fd, "category") : "lunch", name, description: str(fd, "description"), price: num(fd, "price"), memberPrice: optNum(fd, "memberPrice") });
   await log("menu.add", name);
   revalidatePath("/admin/content");
+}
+
+export async function createTeeTimes(fd: FormData) {
+  await guard();
+  const eventId = num(fd, "eventId");
+  const first = nairobi(str(fd, "first"));
+  const count = Math.min(100, Math.max(1, num(fd, "count")));
+  const gap = Math.min(30, Math.max(5, num(fd, "gap")));
+  if (!eventId || !first) return;
+  await db.insert(s.teeTimes).values(
+    Array.from({ length: count }, (_, n) => ({
+      eventId,
+      startsAt: new Date(first.getTime() + n * gap * 60_000),
+      capacity: Math.max(1, num(fd, "capacity") || DRAW_CAPACITY),
+      players: Math.min(4, Math.max(1, num(fd, "players") || PLAYERS_PER_TEE)),
+      fee: Math.max(1, num(fd, "fee") || DRAW_FEE),
+    })),
+  );
+  await log("draw.teetimes", `event #${eventId}: ${count} tee times from ${str(fd, "first")} every ${gap} min`);
+  revalidatePath("/admin/draws");
+  revalidatePath("/");
+}
+
+export async function closeDrawEntries(fd: FormData) {
+  await guard();
+  const ids = fd.getAll("id").map(Number).filter(Boolean);
+  for (const id of ids) await lockTeeTime(id);
+  await log("draw.close", `tee times ${ids.join(", ")}`);
+  revalidatePath("/admin/draws");
+  revalidatePath("/");
+}
+
+export async function drawTeeTimes(fd: FormData) {
+  await guard();
+  const ids = fd.getAll("id").map(Number).filter(Boolean);
+  for (const id of ids) await runDraw(id);
+  revalidatePath("/admin/draws");
+  revalidatePath("/");
+}
+
+export async function deleteOpenTeeTime(fd: FormData) {
+  await guard();
+  const id = num(fd, "id");
+  if (await paidEntries(id)) return; // never delete a tee time that people have paid to enter
+  await db.delete(s.teeTimes).where(and(eq(s.teeTimes.id, id), eq(s.teeTimes.status, "open")));
+  await log("draw.teetime_delete", `#${id}`);
+  revalidatePath("/admin/draws");
+  revalidatePath("/");
 }

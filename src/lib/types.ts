@@ -1,6 +1,6 @@
 export type CartItem = {
   id: string;
-  kind: "entry" | "room" | "menu" | "carwash" | "product" | "lesson" | "greenfee" | "membership";
+  kind: "entry" | "room" | "menu" | "carwash" | "product" | "lesson" | "greenfee" | "membership" | "ballot";
   refId: number;
   qty: number;
   eventId?: number | null;

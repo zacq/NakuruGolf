@@ -4,6 +4,7 @@ import { and, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import * as s from "@/db/schema";
 import { DEPOSIT_PCT, PROMO_CODES, TZ, isWeekend, normalizePhone, kes, CLUB, waLink, fmtDate } from "./constants";
 import { notify } from "./notify";
+import { lockTeeTime, paidEntries, teeLabel } from "./draw";
 import type { CartItem, Quote } from "./types";
 
 const HOLD_MINUTES = 15;
@@ -340,6 +341,29 @@ export async function priceItems(items: CartItem[], member: boolean, deposit = f
         eventId: null,
         meta: { membershipId: m.id },
       });
+    } else if (raw.kind === "ballot") {
+      const [tt] = await q.select().from(s.teeTimes).where(eq(s.teeTimes.id, raw.refId));
+      if (!tt) throw new CartError("That tee time no longer exists.");
+      const when = teeLabel(tt.startsAt);
+      if (tt.status !== "open") throw new CartError(`Entries for the ${when} draw have closed.`);
+      if (take(`ballot-event:${tt.eventId}`, 1) > 0) throw new CartError("You can enter one tee-time draw per event. Remove the extra draw from your cart.");
+      const taken = (await paidEntries(tt.id, q)) + (await heldQty(q, "ballot", tt.id));
+      if (taken >= tt.capacity) throw new CartError(`The ${when} draw is full. Please choose another tee time.`);
+      const name = str(meta.name).trim().slice(0, 80);
+      if (!name) throw new CartError("Enter the player's name for the tee-time draw.");
+      const [ev] = await q.select().from(s.events).where(eq(s.events.id, tt.eventId));
+      lines.push({
+        kind: "ballot",
+        refId: tt.id,
+        stream: "ballot",
+        itemName: `Tee-time draw · ${ev.name} · ${when} — ${name}`,
+        qty: 1,
+        unitPrice: tt.fee,
+        total: tt.fee,
+        balance: 0,
+        eventId: ev.id,
+        meta: { name, handicap: str(meta.handicap).slice(0, 10), hdidId: str(meta.hdidId).slice(0, 40), club: str(meta.club).slice(0, 80) },
+      });
     }
   }
   return lines;
@@ -444,6 +468,14 @@ export async function createOrder(input: {
     const stale = await tx.select().from(s.orders).where(and(eq(s.orders.phone, phone), eq(s.orders.status, "pending")));
     for (const o of stale) await failOrder(o.number, "cancelled", tx);
 
+    // one draw entry per phone number per event, so nobody can buy extra chances
+    const draws = input.items.filter((i) => i.kind === "ballot").map((i) => Number(i.refId));
+    if (draws.length) {
+      const events = tx.select({ id: s.teeTimes.eventId }).from(s.teeTimes).where(inArray(s.teeTimes.id, draws));
+      const already = await tx.select({ id: s.ballotEntries.id }).from(s.ballotEntries).where(and(eq(s.ballotEntries.phone, phone), inArray(s.ballotEntries.eventId, events)));
+      if (already.length) throw new CartError("This phone number has already entered a tee-time draw for this event.");
+    }
+
     const { quote, lines } = await priceCart(input.items, { memberPhone: input.memberPhone, promo: input.promo, deposit: input.deposit }, tx);
     if (!quote.ok) throw new CartError(quote.error || "Cart error");
     if (quote.amountDue <= 0) throw new CartError("Order total must be above zero.");
@@ -536,6 +568,21 @@ export async function settleOrder(number: string, receipt: string, paymentId: nu
           .update(s.products)
           .set({ stock: sql`greatest(${s.products.stock} - ${l.qty}, 0)` })
           .where(and(eq(s.products.id, l.refId), sql`${s.products.stock} is not null`));
+      } else if (l.kind === "ballot" && l.refId) {
+        const meta = (l.meta || {}) as Record<string, string>;
+        await tx.insert(s.ballotEntries).values({
+          teeTimeId: l.refId,
+          eventId: l.eventId!,
+          orderId: o.id,
+          name: meta.name || o.customerName,
+          phone: o.phone,
+          handicap: meta.handicap || "",
+          hdidId: meta.hdidId || "",
+          club: meta.club || "",
+          mpesaReceipt: receipt,
+        });
+        const [tt] = await tx.select().from(s.teeTimes).where(eq(s.teeTimes.id, l.refId));
+        if (tt && (await paidEntries(tt.id, tx)) >= tt.capacity) await lockTeeTime(tt.id, tx);
       } else if (l.kind === "membership" && l.refId) {
         const [m] = await tx.select().from(s.memberships).where(eq(s.memberships.id, l.refId));
         if (m) {
@@ -579,6 +626,7 @@ export async function cancelAndRefund(orderId: number, reason: string, actor = "
     if (l.kind === "product" && l.refId) await db.update(s.products).set({ stock: sql`${s.products.stock} + ${l.qty}` }).where(and(eq(s.products.id, l.refId), sql`${s.products.stock} is not null`));
   }
   await db.delete(s.registrations).where(eq(s.registrations.orderId, o.id));
+  await db.delete(s.ballotEntries).where(and(eq(s.ballotEntries.orderId, o.id), eq(s.ballotEntries.result, "entered")));
   await db.update(s.bookings).set({ status: "cancelled" }).where(eq(s.bookings.orderId, o.id));
   await db.insert(s.auditLogs).values({ actor, action: "refund", detail: `${o.number}: ${reason}` });
   return true;

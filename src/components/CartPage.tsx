@@ -178,7 +178,7 @@ export default function CartPage() {
                   <button onClick={() => remove(i.id)} className="mt-1 min-h-11 text-sm font-semibold text-red-700 underline">Remove</button>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  {i.kind !== "room" && i.kind !== "membership" && i.kind !== "carwash" && i.kind !== "lesson" && !(i.kind === "entry" && Array.isArray(i.meta.players) && i.meta.players.length > 0) && <Stepper label={i.label} value={i.qty} min={1} max={50} onChange={(n) => setQty(i.id, n)} />}
+                  {i.kind !== "room" && i.kind !== "membership" && i.kind !== "carwash" && i.kind !== "lesson" && i.kind !== "ballot" && !(i.kind === "entry" && Array.isArray(i.meta.players) && i.meta.players.length > 0) && <Stepper label={i.label} value={i.qty} min={1} max={50} onChange={(n) => setQty(i.id, n)} />}
                   {!ql && <p className="font-bold">{kes(i.unitPrice * i.qty)}</p>}
                 </div>
               </div>

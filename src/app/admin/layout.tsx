@@ -13,6 +13,7 @@ const tabs = [
   ["/admin/checkin", "Check-in"],
   ["/admin/ops", "Hotel · Kitchen · Wash · Tee"],
   ["/admin/events", "Events"],
+  ["/admin/draws", "Tee-time draws"],
   ["/admin/partners", "Partners"],
   ["/admin/leads", "Leads"],
   ["/admin/members", "Members"],

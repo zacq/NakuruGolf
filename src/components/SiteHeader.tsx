@@ -16,6 +16,7 @@ export const MENU = [
   { href: "/partners", label: "Partners" },
   { href: "/venue", label: "Venue & Corporate" },
   { href: "/about", label: "About & Course" },
+  { href: "/leaderboard", label: "Leaderboard" },
   { href: "/news", label: "News & Gallery" },
   { href: "/contact", label: "Contact" },
 ];
@@ -62,7 +63,7 @@ export default function SiteHeader() {
           </span>
         </Link>
         <nav className="hidden items-center gap-1 xl:flex" aria-label="Main">
-          {[MENU[0], MENU[1], MENU[2], MENU[4], MENU[6], MENU[7], MENU[5], MENU[9], MENU[11]].map((m) => (
+          {[MENU[0], MENU[1], MENU[2], MENU[4], MENU[6], MENU[7], MENU[5], MENU[9], MENU[12]].map((m) => (
             <Link key={m.href} href={m.href} className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-white/10 ${pathname.startsWith(m.href) ? "text-gold-400" : ""}`}>
               {m.label}
             </Link>
