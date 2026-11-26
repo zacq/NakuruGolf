@@ -83,7 +83,7 @@ export default async function Home() {
               </div>
               <div className="grid gap-4">
                 <Countdown to={new Date(feat.startsAt).toISOString()} />
-                <Link href={`/events/${feat.slug}#register`} className="btn-gold">Register now</Link>
+                <Link href={`/events/${feat.slug}`} className="btn-gold">Register now</Link>
               </div>
             </div>
           </div>

@@ -286,8 +286,10 @@ async function runSeed() {
       { album: "The Course", url: IMG.mower, caption: "Greens maintenance" },
     ]);
 
-    // ---------- Tee-time draw: 50 tee times, 8 minutes apart, on day one of the Nakuru Open ----------
-    await tx.insert(s.teeTimes).values(Array.from({ length: 50 }, (_, n) => ({ eventId: open.id, startsAt: new Date(new Date(open.startsAt).getTime() + (n * 8 - 30) * 60_000) })));
+    // ---------- Tee-time draw: 50 tee times a day, 8 minutes apart from 6:30am ----------
+    const teeDay = (eventId: number, day: string) =>
+      Array.from({ length: 50 }, (_, n) => ({ eventId, startsAt: new Date(new Date(`${day}T06:30:00+03:00`).getTime() + n * 8 * 60_000) }));
+    await tx.insert(s.teeTimes).values([...teeDay(kengen.id, "2026-11-27"), ...teeDay(kengen.id, "2026-11-28"), ...teeDay(open.id, "2027-02-20")]);
 
     await tx.insert(s.settings).values([
       { key: "course_notice", value: COURSE_NOTE_DEFAULT },

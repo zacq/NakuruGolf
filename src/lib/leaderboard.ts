@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import * as s from "@/db/schema";
-import { fmtDate } from "./constants";
+import { TZ, fmtDate } from "./constants";
 import { teeClock, teeLabel } from "./draw";
 
 export type BoardRow = { pos: string; name: string; handicap: string; points: string };
@@ -47,6 +47,8 @@ export async function teeTimeViews(eventId: number) {
   return tees.map((t) => ({
     id: t.id,
     clock: teeClock(t.startsAt),
+    day: new Date(t.startsAt).toLocaleDateString("en-CA", { timeZone: TZ }),
+    dayLabel: new Date(t.startsAt).toLocaleDateString("en-KE", { timeZone: TZ, weekday: "long", day: "numeric", month: "short" }),
     label: teeLabel(t.startsAt),
     entries: counts.find((c) => c.id === t.id)?.n || 0,
     capacity: t.capacity,
